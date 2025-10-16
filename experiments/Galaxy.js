@@ -1,70 +1,174 @@
-let galaxy = [];
-let numStars = 200;
-let blackHole;
-let canvasWidth = 800;
-let canvasHeight = 600;
+let galaxy;
+let stars = [];
+let supernovas = [];
+let flowField = [];
+let fieldSize = 20;
+let cols, rows;
+let nScale = 0.05;
+let t = 0;
+let xScale = 1.5;
 
 function setup() {
-  createCanvas(canvasWidth, canvasHeight);
+  createCanvas(windowWidth, windowHeight);
   background(0);
   noStroke();
-  
-  // Black hole at the center
-  blackHole = createVector(width / 2, height / 2);
 
-  // Initialize stars orbiting the black hole
-  for (let i = 0; i < numStars; i++) {
-    let distance = random(50, 200); // distance from black hole
-    let angle = random(TWO_PI);     // random angle
-    let speed = random(0.001, 0.01); // angular speed
-    let size = random(1, 3);        // star size
+  cols = ceil(width / fieldSize);
+  rows = ceil(height / fieldSize);
 
-    // Random RGB or white color
-    let starColor;
-    if (random(1) < 0.5) {
-      starColor = color(255); // white
-    } else {
-      starColor = color(random(200, 255), random(200, 255), random(200, 255));
-    }
+  flowField = new Array(cols);
+  for (let i = 0; i < cols; i++) {
+    flowField[i] = new Array(rows);
+  }
 
-    galaxy.push({
-      distance: distance,
-      angle: angle,
-      speed: speed,
-      size: size,
-      color: starColor,
-      x: blackHole.x + cos(angle) * distance,
-      y: blackHole.y + sin(angle) * distance,
-      lastX: 0,
-      lastY: 0
+  for (let i = 0; i < 500; i++) {
+    stars.push({
+      x: random(width),
+      y: random(height),
+      size: random(1, 4),
+      trail: [],
     });
   }
+  galaxy = new Galaxy(width/2, height/2, 500);
+
+  frameRate(60);
 }
 
 function draw() {
+  background(0);
   // Fading background for trails
-  fill(0, 20);
+  fill(0, 0, 0, 20);
   rect(0, 0, width, height);
 
-  // Draw black hole
-  fill(0);
-  ellipse(blackHole.x, blackHole.y, 20, 20);
+  updateFlowField();
 
-  // Update and draw stars
-  for (let star of galaxy) {
-    star.lastX = star.x;
-    star.lastY = star.y;
+  
+  galaxy.updateStars();
+  galaxy.showStars();
 
-    // Update angle for orbit
-    star.angle += star.speed;
+  for (let star of stars) {
+    ellipse(star.x, star.y, star.size);
+  }
+  for (let i = supernovas.length - 1; i >= 0; i--) {
+    supernovas[i].update();
+    supernovas[i].show();
+    if (supernovas[i].isDead()) supernovas.splice(i, 1);
+  }
 
-    // Calculate new position
-    star.x = blackHole.x + cos(star.angle) * star.distance;
-    star.y = blackHole.y + sin(star.angle) * star.distance;
+  t += 0.01;
+}
 
-    // Draw trail
-    stroke(star.color);
-    strokeWeight(star.size);
-    line(star.lastX, star.lastY, star.x, star.y);
+// Flow field influenced by Perlin noise
+function updateFlowField() {
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      let angle = noise(i * nScale, j * nScale, t) * TWO_PI * 2;
+      flowField[i][j] = p5.Vector.fromAngle(angle);
+    }
+  }
+}
+
+class Galaxy {
+  constructor(x, y, numStars) {
+    this.center = createVector(x, y);
+    this.stars = [];
+    this.blackHoleRadius = 10;
+
+    for (let i = 0; i < numStars; i++) {
+      let pos = p5.Vector.random2D().mult(random(50, 200)).add(this.center);
+      this.stars.push({
+        pos: pos,
+        vel: createVector(0, 0),
+        acc: createVector(0, 0),
+        size: random(1, 3),
+        trail: [],
+        distance: p5.Vector.dist(pos, this.center),
+        angle: atan2(pos.y - this.center.y, pos.x - this.center.x)
+      });
+    }
+  }
+
+  updateStars() {
+    for (let star of this.stars) {
+      // Orbit around black hole
+      star.angle += 0.01; // base orbital speed
+      star.pos.x = this.center.x + cos(star.angle) * star.distance * xScale;
+      star.pos.y = this.center.y + sin(star.angle) * star.distance;
+
+      // Flow field influence
+      let i = constrain(floor(star.pos.x / fieldSize), 0, cols - 1);
+      let j = constrain(floor(star.pos.y / fieldSize), 0, rows - 1);
+      let flow = flowField[i][j].copy().mult(0.5); // subtle influence
+      star.pos.add(flow);
+
+      // Trail
+      star.trail.push(star.pos.copy());
+      if (star.trail.length > 20) star.trail.shift();
+    }
+  }
+
+  showStars() {
+    noStroke();
+    fill(255, 200);
+    for (let star of this.stars) {
+      for (let i = 0; i < star.trail.length; i++) {
+        let pos = star.trail[i];
+        let alpha = map(i, 0, star.trail.length - 1, 0, 80);
+        stroke(255, alpha);
+        strokeWeight(star.size);
+        point(pos.x, pos.y);
+      }
+    }
+
+    // Draw black hole
+    push();
+    noStroke();
+    for (let r = this.blackHoleRadius * 3; r > 0; r--) {
+      let alpha = map(r, 0, this.blackHoleRadius * 3, 0, 50);
+      fill(0, alpha);
+      ellipse(this.center.x, this.center.y, r * 2);
+    }
+    fill(0);
+    ellipse(this.center.x, this.center.y, this.blackHoleRadius * 2);
+    pop();
+  }
+}
+
+class Supernova {
+  constructor(pos) {
+    this.pos = pos.copy();
+    this.radius = 0;
+    this.maxRadius = random(30, 80);
+    this.lifespan = 30;
+    this.age = 0;
+  }
+
+  update() {
+    this.age++;
+    this.radius = map(this.age, 0, this.lifespan, 0, this.maxRadius);
+  }
+
+  show() {
+    push();
+    noFill();
+    stroke(255, map(this.lifespan - this.age, 0, this.lifespan, 0, 150));
+    ellipse(this.pos.x, this.pos.y, this.radius * 2);
+    pop();
+  }
+
+  isDead() {
+    return this.age >= this.lifespan;
+  }
+}
+
+function mousePressed() {
+  for (let i = stars.length - 1; i >= 0; i--) {
+    let s = stars[i];
+    let d = dist(mouseX, mouseY, s.x, s.y);
+    if (d < 10) {
+      supernovas.push(new Supernova(createVector(s.x, s.y)));
+      stars.splice(i, 1);
+      break;
+    }
   }
 }
