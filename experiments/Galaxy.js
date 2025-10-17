@@ -168,7 +168,7 @@ class Supernova {
 
   show() {
     push();
-    noFill();
+    fill(random(220, 255));
     stroke(255, map(this.lifespan - this.age, 0, this.lifespan, 0, 150));
     ellipse(this.pos.x, this.pos.y, this.radius * 2);
     pop();
@@ -182,6 +182,7 @@ class Supernova {
 function mousePressed() {
 
   let clickedOnStar = false;
+
   // Clicking on a background star triggers a supernova
   for (let i = stars.length - 1; i >= 0; i--) {
     let s = stars[i];
