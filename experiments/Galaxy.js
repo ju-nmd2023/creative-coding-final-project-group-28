@@ -29,7 +29,7 @@ function setup() {
       trail: [],
     });
   }
-  galaxy = new Galaxy(width/2, height/2, 500);
+  galaxy = new Galaxy(width / 2, height / 2, 500);
 
   frameRate(60);
 }
@@ -42,18 +42,20 @@ function draw() {
 
   updateFlowField();
 
-  
   galaxy.updateStars();
   galaxy.showStars();
 
   for (let star of stars) {
     ellipse(star.x, star.y, star.size);
   }
+
   for (let i = supernovas.length - 1; i >= 0; i--) {
     supernovas[i].update();
     supernovas[i].show();
     if (supernovas[i].isDead()) supernovas.splice(i, 1);
   }
+
+  galaxy.updateMovement();
 
   t += 0.01;
 }
@@ -71,6 +73,8 @@ function updateFlowField() {
 class Galaxy {
   constructor(x, y, numStars) {
     this.center = createVector(x, y);
+    this.target = this.center.copy();
+    this.speed = 3; // speed of galaxy movement
     this.stars = [];
     this.blackHoleRadius = 10;
 
@@ -104,6 +108,15 @@ class Galaxy {
       // Trail
       star.trail.push(star.pos.copy());
       if (star.trail.length > 20) star.trail.shift();
+    }
+  }
+
+  updateMovement() {
+    // Smoothly move galaxy center toward target
+    let dir = p5.Vector.sub(this.target, this.center);
+    if (dir.mag() > 1) {
+      dir.setMag(this.speed);
+      this.center.add(dir);
     }
   }
 
@@ -162,6 +175,7 @@ class Supernova {
 }
 
 function mousePressed() {
+  // Clicking on a background star triggers a supernova
   for (let i = stars.length - 1; i >= 0; i--) {
     let s = stars[i];
     let d = dist(mouseX, mouseY, s.x, s.y);
@@ -171,4 +185,7 @@ function mousePressed() {
       break;
     }
   }
+
+  // Move galaxy toward click position
+  galaxy.target = createVector(mouseX, mouseY);
 }
