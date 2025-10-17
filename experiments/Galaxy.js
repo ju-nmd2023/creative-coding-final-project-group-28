@@ -31,7 +31,7 @@ function setup() {
   }
   galaxy = new Galaxy(width / 2, height / 2, 500);
 
-  frameRate(60);
+  frameRate(120);
 }
 
 function draw() {
@@ -116,6 +116,10 @@ class Galaxy {
     let dir = p5.Vector.sub(this.target, this.center);
     if (dir.mag() > 1) {
       dir.setMag(this.speed);
+
+      for (let star of this.stars) {
+        star.pos.add(dir);
+      }
       this.center.add(dir);
     }
   }
@@ -136,11 +140,12 @@ class Galaxy {
     // Draw black hole
     push();
     noStroke();
-    for (let r = this.blackHoleRadius * 3; r > 0; r--) {
-      let alpha = map(r, 0, this.blackHoleRadius * 3, 0, 50);
-      fill(0, alpha);
+    for (let r = this.blackHoleRadius * 6; r > 0; r--) {
+      let alpha = map(r, this.blackHoleRadius * 6, 0, 0, 120);
+      fill(0, 0, 0, alpha);
       ellipse(this.center.x, this.center.y, r * 2);
     }
+
     fill(0);
     ellipse(this.center.x, this.center.y, this.blackHoleRadius * 2);
     pop();
@@ -175,6 +180,8 @@ class Supernova {
 }
 
 function mousePressed() {
+
+  let clickedOnStar = false;
   // Clicking on a background star triggers a supernova
   for (let i = stars.length - 1; i >= 0; i--) {
     let s = stars[i];
@@ -182,10 +189,12 @@ function mousePressed() {
     if (d < 10) {
       supernovas.push(new Supernova(createVector(s.x, s.y)));
       stars.splice(i, 1);
+      clickedOnStar = true;
       break;
     }
   }
 
-  // Move galaxy toward click position
-  galaxy.target = createVector(mouseX, mouseY);
+  if (!clickedOnStar){
+    galaxy.target = createVector(mouseX, mouseY);
+  };
 }
