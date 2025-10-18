@@ -33,8 +33,3 @@ h6 {
   background-color: white;
 }
 
-#moveGalaxyBtn, #supernovaBtn, #zoomBtn {
-  background-color: aqua; 
-  color: black;
-  border: none;
-}

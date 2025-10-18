@@ -98,10 +98,10 @@ function draw() {
   }
 
   galaxy.updateMovement();
+
   } 
-  else {
-    drawZoomedStar(zoomTarget);
-  }
+  
+  else { drawZoomedStar(zoomTarget); }
 
 
   for (let i = supernovas.length - 1; i >= 0; i--) {
