@@ -1,8 +1,8 @@
 [
   {
     "file": "experiments/Galaxy.js",
-    "name": "Georg Nees' Schotter Variation",
-    "description": "This piece is a variation of Georg Nees’ Schotter, but with a little twist. You can control the number of rows and columns with sliders to explore different levels of order and chaos."
+    "name": "Galaxy Exploration",
+    "description": "This piece invites the viewer to explore a dynamic galaxy filled with stars and supernovas. The user can interact with the galaxy by triggering supernovas, zooming in on stars, and moving the galaxy around the canvas."
   }
 ]
 

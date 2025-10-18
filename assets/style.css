@@ -26,55 +26,14 @@ h6 {
   font-weight: 600;
 }
 
-#name {
-  margin-bottom: 0.8rem;
-}
-p {
-  margin: 0.4rem 0 1rem 0;
-}
-
 #p5container {
   grid-row: 1 / 4;
   grid-column: 1 / 2;
   background-color: white;
 }
 
-header {
-  align-self: center;
-  padding: 1em;
-  grid-area: header;
-  background-color: rgba(0, 0, 0, 0.6);
-  z-index: 2;
-}
-#myName{
-  text-align: center;
-}
-footer {
-  font-size: 0.8rem;
-  z-index: 2;
-}
-
-main {
-  display: flex;
-  flex-direction: row;
-  padding: 1em;
-  grid-area: information;
-  background-color: rgba(0, 0, 0, 0.6);
-  z-index: 2;
-}
-
-main section {
-  flex-grow: 10;
-}
-
-.button {
-  border: none;
-  background-color: transparent;
-  padding: 2em;
-  cursor: pointer;
-}
-
-a,
-a:visited {
-  color: white;
+#moveGalaxyBtn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
 }

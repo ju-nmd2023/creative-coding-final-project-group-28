@@ -22,13 +22,16 @@ function setup() {
 
   // Buttons
   supernovaBtn = createButton('Go boom');
+  supernovaBtn.attribute('id', 'supernovaBtn');
   supernovaBtn.position(width - 150, 100);
   supernovaBtn.mousePressed(() => {
     supernovaMode = true;
     zoomMode = false;
+    moveGalaxyMode = false;
   });
 
   zoomBtn = createButton('Zoom to star');
+  zoomBtn.attribute('id', 'zoomBtn');
   zoomBtn.position(width - 150, 150);
   zoomBtn.mousePressed(() => {
     zoomMode = true;
@@ -36,7 +39,7 @@ function setup() {
   });
   
   moveGalaxyBtn = createButton('Move Galaxy');
-  moveGalaxyBtn.position(width - 150, 200);
+  moveGalaxyBtn.attribute('id', 'moveGalaxyBtn');
   moveGalaxyBtn.mousePressed(() => {
     moveGalaxyMode = true;
     zoomMode = false;
