@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=BBH+Sans+Bogle&display=swap');
+
 body {
   margin: 0px auto;
   height: 100vh;
@@ -14,6 +16,24 @@ main {
   overflow: hidden;
   margin: 0;
 }
+
+.supernovaBtn, .zoomBtn, .moveGalaxyBtn {
+  font-family: "BBH Sans Bogle", sans-serif;
+  padding: 8px 16px;
+  font-weight: 400;
+  font-size: 25px;
+  border-radius: 8px;
+  background-color: rgba(10, 10, 10, 0.3);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.supernovaBtn:hover, .zoomBtn:hover, .moveGalaxyBtn:hover {
+  background-color: rgba(10, 10, 10, 1);
+}
+
 
 /* main {
   height: 100%;

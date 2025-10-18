@@ -7,6 +7,7 @@ let cols, rows;
 let nScale = 0.05;
 let t = 0;
 let xScale = 2.0;
+let canvas;
 
 let zoomMode = false;
 let supernovaMode = false;
@@ -16,14 +17,16 @@ let moveGalaxyMode = false;
 let supernovaBtn, zoomBtn, moveGalaxyBtn;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  canvas = createCanvas(windowWidth, windowHeight);
+  canvas.mousePressed(moveGalaxy);
   background(0);
   noStroke();
 
   // Buttons
   supernovaBtn = createButton('Go boom');
-  supernovaBtn.attribute('id', 'supernovaBtn');
-  supernovaBtn.position(width - 150, 100);
+  supernovaBtn.addClass('supernovaBtn');
+  supernovaBtn.parent(document.body);
+  supernovaBtn.position(width / 2 - 200, 20);
   supernovaBtn.mousePressed(() => {
     supernovaMode = true;
     zoomMode = false;
@@ -31,15 +34,19 @@ function setup() {
   });
 
   zoomBtn = createButton('Zoom to star');
-  zoomBtn.attribute('id', 'zoomBtn');
-  zoomBtn.position(width - 150, 150);
+  zoomBtn.addClass('zoomBtn');
+  zoomBtn.parent(document.body);
+  zoomBtn.position(width / 2 - 50, 20);
   zoomBtn.mousePressed(() => {
     zoomMode = true;
     supernovaMode = false;
+    moveGalaxyMode = false;
   });
   
   moveGalaxyBtn = createButton('Move Galaxy');
-  moveGalaxyBtn.attribute('id', 'moveGalaxyBtn');
+  moveGalaxyBtn.addClass('moveGalaxyBtn');
+  moveGalaxyBtn.parent(document.body);
+  moveGalaxyBtn.position(width / 2 + 125, 20);
   moveGalaxyBtn.mousePressed(() => {
     moveGalaxyMode = true;
     zoomMode = false;
@@ -163,9 +170,6 @@ function mousePressed() {
     zoomTarget = null;
     return;
   }
-  let clickedOnStar = false;
-  if (mouseX > width - 200) return;
-
   // Clicking on a background star triggers a supernova
   for (let i = stars.length - 1; i >= 0; i--) {
     let s = stars[i];
@@ -180,11 +184,22 @@ function mousePressed() {
       break;
     }
   }
-  if (moveGalaxyMode && !clickedOnStar) {
+}
+function moveGalaxy() {
+  if (moveGalaxyMode) {
     galaxy.target = createVector(mouseX, mouseY);
+  }
 }
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+
+  // Update button positions
+  supernovaBtn.position(width / 2 - 150, 20);
+  zoomBtn.position(width / 2 - 50, 20);
+  moveGalaxyBtn.position(width / 2 + 50, 20);
 }
+
 class Galaxy {
   constructor(x, y, numStars) {
     this.center = createVector(x, y);

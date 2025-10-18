@@ -1,9 +1,4 @@
-const nextButton = document.getElementById("next");
-const prevButton = document.getElementById("prev");
 const githubLink = document.getElementById("github");
-const nameText = document.getElementById("name");
-const descriptionText = document.getElementById("description");
-const backgroundText = document.getElementById("background");
 const p5container = document.getElementById("p5container");
 
 let currentExperiment = 0;
@@ -58,22 +53,5 @@ function goToExperiment(index) {
   iframe.srcdoc = bodyElement.innerHTML;
   p5container.appendChild(iframe);
 
-  nameText.innerText = experiment.name;
-  descriptionText.innerText = experiment.description;
 }
 
-nextButton.addEventListener("click", () => {
-  currentExperiment++;
-  if (currentExperiment >= experiments.length) {
-    currentExperiment = 0;
-  }
-  goToExperiment(currentExperiment);
-});
-
-prevButton.addEventListener("click", () => {
-  currentExperiment--;
-  if (currentExperiment < 0) {
-    currentExperiment = experiments.length - 1;
-  }
-  goToExperiment(currentExperiment);
-});
