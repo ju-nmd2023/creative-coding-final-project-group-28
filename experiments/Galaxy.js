@@ -8,10 +8,41 @@ let nScale = 0.05;
 let t = 0;
 let xScale = 1.5;
 
+let zoomMode = false;
+let supernovaMode = false;
+let zoomTarget = null;
+let moveGalaxyMode = false;
+
+let supernovaBtn, zoomBtn, moveGalaxyBtn;
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   background(0);
   noStroke();
+
+  // Buttons
+  supernovaBtn = createButton('Go boom');
+  supernovaBtn.position(width - 150, 100);
+  supernovaBtn.mousePressed(() => {
+    supernovaMode = true;
+    zoomMode = false;
+  });
+
+  zoomBtn = createButton('Zoom to star');
+  zoomBtn.position(width - 150, 150);
+  zoomBtn.mousePressed(() => {
+    zoomMode = true;
+    supernovaMode = false;
+  });
+  
+  moveGalaxyBtn = createButton('Move Galaxy');
+  moveGalaxyBtn.position(width - 150, 200);
+  moveGalaxyBtn.mousePressed(() => {
+    moveGalaxyMode = true;
+    zoomMode = false;
+    supernovaMode = false;
+  });
+
 
   cols = ceil(width / fieldSize);
   rows = ceil(height / fieldSize);
@@ -21,11 +52,14 @@ function setup() {
     flowField[i] = new Array(rows);
   }
 
+  //Stars
   for (let i = 0; i < 500; i++) {
     stars.push({
       x: random(width),
       y: random(height),
       size: random(1, 4),
+      color: randomizedColor(),
+      noiseOffset: random(1000),
       trail: [],
     });
   }
@@ -36,31 +70,42 @@ function setup() {
 
 function draw() {
   background(0);
-  // Fading background for trails
-  fill(0, 0, 0, 20);
-  rect(0, 0, width, height);
 
   updateFlowField();
 
-  galaxy.updateStars();
-  galaxy.showStars();
+  if (!zoomTarget){  
+    
+    galaxy.updateStars();
+    galaxy.showStars();
 
   for (let star of stars) {
+
+    let n = noise(star.x * 0.05, star.y * 0.05, t + star.noiseOffset);
+    let alpha = map(n, 0, 1, 50, 255);
+    fill(red(star.color), green(star.color), blue(star.color), alpha);
     ellipse(star.x, star.y, star.size);
+
   }
+
+  galaxy.updateMovement();
+  } 
+  else {
+    drawZoomedStar(zoomTarget);
+  }
+
 
   for (let i = supernovas.length - 1; i >= 0; i--) {
     supernovas[i].update();
     supernovas[i].show();
     if (supernovas[i].isDead()) supernovas.splice(i, 1);
   }
+  if (zoomTarget) {
+    drawZoomedStar(zoomTarget);
+  }
 
-  galaxy.updateMovement();
-
-  t += 0.01;
+  t += 0.05;
 }
 
-// Flow field influenced by Perlin noise
 function updateFlowField() {
   for (let i = 0; i < cols; i++) {
     for (let j = 0; j < rows; j++) {
@@ -70,6 +115,73 @@ function updateFlowField() {
   }
 }
 
+function randomizedColor() {
+  let choice = floor(random(3));
+  if (choice === 0) {
+    return color(random(200, 255), random(180, 230), random(50, 100));
+  } 
+  else if (choice === 1) {
+    return color(random(200, 255), random(200, 255), random(200, 255));
+  } 
+  else { 
+    return color(random(150, 200), random(180, 240), random(255));
+  }
+}
+
+function drawZoomedStar(s) {
+  push();
+  translate(width/2, height/2);
+  let zoomRadius = min(width, height) * 0.4;
+
+  for (let x = -zoomRadius; x < zoomRadius; x+=2) {
+    for (let y = -zoomRadius; y < zoomRadius; y+=2) {
+      let d = dist(0, 0, x, y);
+      if (d < zoomRadius) {
+        let n = noise(x * 0.02 + t, y * 0.02, s.noiseOffset + t * 0.5);
+
+        let factor = map(n, 0, 1, 0.5, 1);
+        let c = color(
+          red(s.color) * factor,
+          green(s.color) * factor,
+          blue(s.color) * factor,
+        );
+        stroke(c);
+        point(x, y);
+      }
+    }
+  }
+
+  pop();
+}
+  
+function mousePressed() {
+
+  if (zoomTarget) {
+    zoomTarget = null;
+    return;
+  }
+  let clickedOnStar = false;
+  if (mouseX > width - 200) return;
+
+  // Clicking on a background star triggers a supernova
+  for (let i = stars.length - 1; i >= 0; i--) {
+    let s = stars[i];
+    let d = dist(mouseX, mouseY, s.x, s.y);
+    if (d < 10) {
+        if (supernovaMode) {
+        supernovas.push(new Supernova(createVector(s.x, s.y)));
+        stars.splice(i, 1);
+      } else if (zoomMode) {
+        zoomTarget = s;
+      }
+      break;
+    }
+  }
+  if (moveGalaxyMode && !clickedOnStar) {
+    galaxy.target = createVector(mouseX, mouseY);
+}
+
+}
 class Galaxy {
   constructor(x, y, numStars) {
     this.center = createVector(x, y);
@@ -87,7 +199,9 @@ class Galaxy {
         size: random(1, 3),
         trail: [],
         distance: p5.Vector.dist(pos, this.center),
-        angle: atan2(pos.y - this.center.y, pos.x - this.center.x)
+        angle: atan2(pos.y - this.center.y, pos.x - this.center.x),
+        color: randomizedColor(),
+        noiseOffset: random(1000),
       });
     }
   }
@@ -151,7 +265,6 @@ class Galaxy {
     pop();
   }
 }
-
 class Supernova {
   constructor(pos) {
     this.pos = pos.copy();
@@ -177,25 +290,4 @@ class Supernova {
   isDead() {
     return this.age >= this.lifespan;
   }
-}
-
-function mousePressed() {
-
-  let clickedOnStar = false;
-
-  // Clicking on a background star triggers a supernova
-  for (let i = stars.length - 1; i >= 0; i--) {
-    let s = stars[i];
-    let d = dist(mouseX, mouseY, s.x, s.y);
-    if (d < 10) {
-      supernovas.push(new Supernova(createVector(s.x, s.y)));
-      stars.splice(i, 1);
-      clickedOnStar = true;
-      break;
-    }
-  }
-
-  if (!clickedOnStar){
-    galaxy.target = createVector(mouseX, mouseY);
-  };
 }
