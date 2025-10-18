@@ -16,6 +16,9 @@ let moveGalaxyMode = false;
 
 let supernovaBtn, zoomBtn, moveGalaxyBtn;
 
+// === SOUND VARIABLE ===
+let explosionSynth;
+
 function setup() {
   canvas = createCanvas(windowWidth, windowHeight);
   canvas.mousePressed(moveGalaxy);
@@ -53,7 +56,6 @@ function setup() {
     supernovaMode = false;
   });
 
-
   cols = ceil(width / fieldSize);
   rows = ceil(height / fieldSize);
 
@@ -62,7 +64,7 @@ function setup() {
     flowField[i] = new Array(rows);
   }
 
-  //Stars
+  // Stars
   for (let i = 0; i < 200; i++) {
     stars.push({
       x: random(width),
@@ -73,7 +75,43 @@ function setup() {
       trail: [],
     });
   }
+
   galaxy = new Galaxy(width / 2, height / 2, 500);
+
+  // === BIG SUPERNOVA SOUND SETUP ===
+  // Membrane synth for punch
+  let explosionMembrane = new Tone.MembraneSynth({
+    pitchDecay: 0.4,
+    octaves: 6,
+    oscillator: { type: "sine" },
+    envelope: {
+      attack: 0.001,
+      decay: 0.8,
+      sustain: 0.01,
+      release: 1.2
+    }
+  }).toDestination();
+
+  // Brown noise for rumble
+  let explosionNoise = new Tone.Noise("brown");
+  let noiseFilter = new Tone.Filter(200, "lowpass").toDestination();
+  explosionNoise.connect(noiseFilter);
+
+  // Wrap into a trigger function
+  explosionSynth = {
+    trigger: function() {
+      // initial punch
+      explosionMembrane.triggerAttackRelease("C1", "1n");
+
+      // long rumble
+      explosionNoise.start();
+      noiseFilter.frequency.setValueAtTime(300, Tone.now());
+      noiseFilter.frequency.exponentialRampToValueAtTime(10, Tone.now() + 1.5);
+
+      // stop noise after 1.5 seconds
+      setTimeout(() => explosionNoise.stop(), 1600);
+    }
+  };
 
   frameRate(120);
 }
@@ -84,33 +122,26 @@ function draw() {
   updateFlowField();
 
   if (!zoomTarget){  
-    
     galaxy.updateStars();
     galaxy.showStars();
 
-  for (let star of stars) {
+    for (let star of stars) {
+      let n = noise(star.x * 0.005, star.y * 0.005, t + star.noiseOffset);
+      let alpha = map(n, 0, 1, 50, 255);
+      fill(red(star.color), green(star.color), blue(star.color), alpha);
+      ellipse(star.x, star.y, star.size);
+    }
 
-    let n = noise(star.x * 0.005, star.y * 0.005, t + star.noiseOffset);
-    let alpha = map(n, 0, 1, 50, 255);
-    fill(red(star.color), green(star.color), blue(star.color), alpha);
-    ellipse(star.x, star.y, star.size);
+    galaxy.updateMovement();
 
+  } else { 
+    drawZoomedStar(zoomTarget); 
   }
-
-  galaxy.updateMovement();
-
-  } 
-  
-  else { drawZoomedStar(zoomTarget); }
-
 
   for (let i = supernovas.length - 1; i >= 0; i--) {
     supernovas[i].update();
     supernovas[i].show();
     if (supernovas[i].isDead()) supernovas.splice(i, 1);
-  }
-  if (zoomTarget) {
-    drawZoomedStar(zoomTarget);
   }
 
   t += 0.05;
@@ -148,7 +179,6 @@ function drawZoomedStar(s) {
       let d = dist(0, 0, x, y);
       if (d < zoomRadius) {
         let n = noise(x * 0.02 + t, y * 0.02, s.noiseOffset + t * 0.5);
-
         let factor = map(n, 0, 1, 0.5, 1);
         let c = color(
           red(s.color) * factor,
@@ -165,19 +195,25 @@ function drawZoomedStar(s) {
 }
   
 function mousePressed() {
-
   if (zoomTarget) {
     zoomTarget = null;
     return;
   }
-  // Clicking on a background star triggers a supernova
+
   for (let i = stars.length - 1; i >= 0; i--) {
     let s = stars[i];
     let d = dist(mouseX, mouseY, s.x, s.y);
     if (d < 10) {
-        if (supernovaMode) {
+      if (supernovaMode) {
         supernovas.push(new Supernova(createVector(s.x, s.y)));
         stars.splice(i, 1);
+
+        // ✅ PLAY BIG SUPERNOVA SOUND
+        if (Tone.context.state !== 'running') {
+          Tone.start(); // required for browser audio
+        }
+        explosionSynth.trigger();
+
       } else if (zoomMode) {
         zoomTarget = s;
       }
@@ -185,6 +221,7 @@ function mousePressed() {
     }
   }
 }
+
 function moveGalaxy() {
   if (moveGalaxyMode) {
     galaxy.target = createVector(mouseX, mouseY);
@@ -226,29 +263,24 @@ class Galaxy {
 
   updateStars() {
     for (let star of this.stars) {
-      // Orbit around black hole
-      star.angle += 0.01; // base orbital speed
+      star.angle += 0.01;
       star.pos.x = this.center.x + cos(star.angle) * star.distance * xScale;
       star.pos.y = this.center.y + sin(star.angle) * star.distance;
 
-      // Flow field influence
       let i = constrain(floor(star.pos.x / fieldSize), 0, cols - 1);
       let j = constrain(floor(star.pos.y / fieldSize), 0, rows - 1);
-      let flow = flowField[i][j].copy().mult(0.5); // subtle influence
+      let flow = flowField[i][j].copy().mult(0.5);
       star.pos.add(flow);
 
-      // Trail
       star.trail.push(star.pos.copy());
       if (star.trail.length > 20) star.trail.shift();
     }
   }
 
   updateMovement() {
-    // Smoothly move galaxy center toward target
     let dir = p5.Vector.sub(this.target, this.center);
     if (dir.mag() > 1) {
       dir.setMag(this.speed);
-
       for (let star of this.stars) {
         star.pos.add(dir);
       }
@@ -269,7 +301,6 @@ class Galaxy {
       }
     }
 
-    // Draw black hole
     push();
     noStroke();
     for (let r = this.blackHoleRadius * 6; r > 0; r--) {
@@ -277,12 +308,12 @@ class Galaxy {
       fill(0, 0, 0, alpha);
       ellipse(this.center.x, this.center.y, r * 2);
     }
-
     fill(0);
     ellipse(this.center.x, this.center.y, this.blackHoleRadius * 2);
     pop();
   }
 }
+
 class Supernova {
   constructor(pos) {
     this.pos = pos.copy();
