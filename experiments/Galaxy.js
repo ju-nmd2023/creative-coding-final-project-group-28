@@ -6,7 +6,7 @@ let fieldSize = 20;
 let cols, rows;
 let nScale = 0.05;
 let t = 0;
-let xScale = 1.5;
+let xScale = 2.0;
 
 let zoomMode = false;
 let supernovaMode = false;
@@ -53,11 +53,11 @@ function setup() {
   }
 
   //Stars
-  for (let i = 0; i < 500; i++) {
+  for (let i = 0; i < 200; i++) {
     stars.push({
       x: random(width),
       y: random(height),
-      size: random(1, 4),
+      size: random(2, 8),
       color: randomizedColor(),
       noiseOffset: random(1000),
       trail: [],
@@ -80,7 +80,7 @@ function draw() {
 
   for (let star of stars) {
 
-    let n = noise(star.x * 0.05, star.y * 0.05, t + star.noiseOffset);
+    let n = noise(star.x * 0.005, star.y * 0.005, t + star.noiseOffset);
     let alpha = map(n, 0, 1, 50, 255);
     fill(red(star.color), green(star.color), blue(star.color), alpha);
     ellipse(star.x, star.y, star.size);
@@ -196,7 +196,7 @@ class Galaxy {
         pos: pos,
         vel: createVector(0, 0),
         acc: createVector(0, 0),
-        size: random(1, 3),
+        size: random(2, 5),
         trail: [],
         distance: p5.Vector.dist(pos, this.center),
         angle: atan2(pos.y - this.center.y, pos.x - this.center.x),
@@ -280,8 +280,10 @@ class Supernova {
   }
 
   show() {
-    push();
-    fill(random(220, 255));
+    push();     
+    let c = color(random(220, 255));
+    c.setAlpha(100);
+    fill(c);
     stroke(255, map(this.lifespan - this.age, 0, this.lifespan, 0, 150));
     ellipse(this.pos.x, this.pos.y, this.radius * 2);
     pop();
