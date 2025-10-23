@@ -1,3 +1,6 @@
+// This code is created small help of ChatGPT based on user instructions. You can see the prompts here: https://chatgpt.com/share/68fa850b-f868-8007-af75-596eff39f27e
+// Also from our previous lectures on flow fields, particle systems and perlin noise.
+
 let galaxy;
 let stars = [];
 let supernovas = [];
@@ -9,14 +12,16 @@ let t = 0;
 let xScale = 2.0;
 let canvas;
 
+let supernovaBtn, zoomBtn, moveGalaxyBtn, createStarBtn;
 let zoomMode = false;
 let supernovaMode = false;
 let zoomTarget = null;
 let moveGalaxyMode = false;
+let createStarMode = false;
+let buttonContainer = document.createElement('div');
+buttonContainer.id = 'buttonContainer';
+document.body.appendChild(buttonContainer);
 
-let supernovaBtn, zoomBtn, moveGalaxyBtn;
-
-// === SOUND VARIABLE ===
 let explosionSynth;
 
 function setup() {
@@ -28,33 +33,44 @@ function setup() {
   // Buttons
   supernovaBtn = createButton('Go boom');
   supernovaBtn.addClass('supernovaBtn');
-  supernovaBtn.parent(document.body);
-  supernovaBtn.position(width / 2 - 200, 20);
+  supernovaBtn.parent(buttonContainer);
   supernovaBtn.mousePressed(() => {
     supernovaMode = true;
     zoomMode = false;
     moveGalaxyMode = false;
+    createStarMode = false;
   });
 
   zoomBtn = createButton('Zoom to star');
   zoomBtn.addClass('zoomBtn');
-  zoomBtn.parent(document.body);
-  zoomBtn.position(width / 2 - 50, 20);
+  zoomBtn.parent(buttonContainer);
   zoomBtn.mousePressed(() => {
     zoomMode = true;
     supernovaMode = false;
     moveGalaxyMode = false;
+    createStarMode = false;
   });
   
   moveGalaxyBtn = createButton('Move Galaxy');
   moveGalaxyBtn.addClass('moveGalaxyBtn');
-  moveGalaxyBtn.parent(document.body);
-  moveGalaxyBtn.position(width / 2 + 125, 20);
+  moveGalaxyBtn.parent(buttonContainer);
   moveGalaxyBtn.mousePressed(() => {
     moveGalaxyMode = true;
     zoomMode = false;
     supernovaMode = false;
+    createStarMode = false;
   });
+
+  createStarBtn = createButton('Create Star');
+  createStarBtn.addClass('createStarBtn');
+  createStarBtn.parent(buttonContainer);
+  createStarBtn.mousePressed(() => {
+    moveGalaxyMode = false;
+    zoomMode = false;
+    supernovaMode = false;
+    createStarMode = true;
+  });
+
 
   cols = ceil(width / fieldSize);
   rows = ceil(height / fieldSize);
@@ -122,8 +138,7 @@ function draw() {
   updateFlowField();
 
   if (!zoomTarget){  
-    galaxy.updateStars();
-    galaxy.showStars();
+
 
     for (let star of stars) {
       let n = noise(star.x * 0.005, star.y * 0.005, t + star.noiseOffset);
@@ -132,6 +147,9 @@ function draw() {
       ellipse(star.x, star.y, star.size);
     }
 
+    updateBackgroundstars();
+    galaxy.updateStars();
+    galaxy.showStars();
     galaxy.updateMovement();
 
   } else { 
@@ -154,6 +172,40 @@ function updateFlowField() {
       flowField[i][j] = p5.Vector.fromAngle(angle);
     }
   }
+}
+
+function updateBackgroundstars() { 
+  
+  for (let i = stars.length - 1; i >= 0; i--)
+    {
+      let s = stars[i];
+      let dir = p5.Vector.sub(galaxy.center, createVector(s.x, s.y));
+      let d = dir.mag();
+
+      let force = constrain(200 / (d * d), 0, 0.5);
+      dir.setMag(force);
+
+      // Apply movement
+      s.x += 4 * dir.x;
+      s.y += 4 * dir.y;
+
+      if (d < galaxy.blackHoleRadius * 5) {
+        stars.splice(i, 1);
+        galaxy.blackHoleRadius = min(galaxy.blackHoleRadius + 0.05, 100);
+        continue;
+      }
+    }
+}
+
+function createNewStar() {
+    stars.push({
+      x: mouseX,
+      y: mouseY,
+      size: random(2, 8),
+      color: randomizedColor(),
+      noiseOffset: random(1000),
+      trail: [],
+  }); 
 }
 
 function randomizedColor() {
@@ -190,11 +242,16 @@ function drawZoomedStar(s) {
       }
     }
   }
-
   pop();
 }
   
 function mousePressed() {
+
+  if (createStarMode) {
+    createNewStar();
+    return;
+  }
+
   if (zoomTarget) {
     zoomTarget = null;
     return;
@@ -249,8 +306,6 @@ class Galaxy {
       let pos = p5.Vector.random2D().mult(random(50, 200)).add(this.center);
       this.stars.push({
         pos: pos,
-        vel: createVector(0, 0),
-        acc: createVector(0, 0),
         size: random(2, 5),
         trail: [],
         distance: p5.Vector.dist(pos, this.center),
@@ -264,12 +319,13 @@ class Galaxy {
   updateStars() {
     for (let star of this.stars) {
       star.angle += 0.01;
-      star.pos.x = this.center.x + cos(star.angle) * star.distance * xScale;
-      star.pos.y = this.center.y + sin(star.angle) * star.distance;
+      star.pos.x = this.center.x + cos(star.angle) * star.distance * xScale; // Apply xScale for elliptical effect
+      star.pos.y = this.center.y + sin(star.angle) * star.distance; // yScale is 1
 
       let i = constrain(floor(star.pos.x / fieldSize), 0, cols - 1);
       let j = constrain(floor(star.pos.y / fieldSize), 0, rows - 1);
-      let flow = flowField[i][j].copy().mult(0.5);
+
+      let flow = flowField[i][j].copy().mult(0.5); // Apply flow field
       star.pos.add(flow);
 
       star.trail.push(star.pos.copy());
