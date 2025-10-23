@@ -16,6 +16,7 @@ main {
   overflow: hidden;
   margin: 0;
 }
+
 #buttonContainer {
   position: absolute;
   top: 20px;
@@ -29,6 +30,8 @@ main {
 }
 
 #buttonContainer button {
+  font-family: 'BBH Sans Bogle';
+  font-size: 26px;
   background: rgba(255, 255, 255, 0.1);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -36,7 +39,6 @@ main {
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
-  font-family: sans-serif;
 }
 
 #buttonContainer button:hover {
